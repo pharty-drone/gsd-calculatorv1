@@ -19,12 +19,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-      - run: npm install --prefix client
-      - run: npm run build:pages
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install deps (client)
+        run: npm ci --prefix client
+
+      - name: Build (client)
+        run: npm run build --prefix client
+
+      # SPA fallback so refresh/deeplinks work on Pages
+      - name: SPA fallback (404 -> index)
+        run: cp client/dist/index.html client/dist/404.html
+
+      # Prevent Pages from trying to process the site with Jekyll
+      - name: Disable Jekyll
+        run: touch client/dist/.nojekyll
+
+      # Upload the built site as the Pages artifact
       - uses: actions/upload-pages-artifact@v3
         with:
           path: client/dist
