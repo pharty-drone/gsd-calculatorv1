@@ -5,15 +5,23 @@ import dotenv from 'dotenv';
 import gsdRouter from './routes/gsd.js';
 import pdfRouter from './routes/pdf.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { authToken } from './middleware/authToken.js';
 
 dotenv.config({ path: '../.env' });
 
 const app = express();
 
 app.use(helmet());
-app.use(cors());
-app.use(express.json());
 
+const allowedOrigins = ['http://localhost:5173'];
+if (process.env.PROD_ORIGIN) {
+  allowedOrigins.push(process.env.PROD_ORIGIN);
+}
+app.use(cors({ origin: allowedOrigins }));
+
+app.use(express.json({ limit: '200kb' }));
+
+app.use('/api', authToken);
 app.use('/api/gsd', gsdRouter);
 app.use('/api/pdf', pdfRouter);
 app.use(errorHandler);
