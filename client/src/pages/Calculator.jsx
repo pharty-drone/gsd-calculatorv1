@@ -6,6 +6,7 @@ import AdvancedSettings from "../components/AdvancedSettings";
 import FAQ from "../components/FAQ";
 import TokenGate from "../components/TokenGate";
 import { setToken } from "../utils/token";
+import UnitToggle from "../components/UnitToggle";
 
 const DRONE_MODELS = {
   "DJI Phantom 4 Pro": {
@@ -150,17 +151,7 @@ export default function Calculator() {
                   />
                 </div>
 
-                <div>
-                  <label className="block mb-1">Units</label>
-                  <select
-                    value={units}
-                    onChange={(e) => setUnits(e.target.value)}
-                    className="w-full p-2 border rounded dark:bg-gray-700"
-                  >
-                    <option value="metric">Metric</option>
-                    <option value="imperial">Imperial</option>
-                  </select>
-                </div>
+                <UnitToggle units={units} onChange={setUnits} />
 
                 <div className="mt-6 flex items-center gap-3">
                   <button
