@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { calculateGsdMetrics } from '../utils/gsdCalculator.js';
+import { overlapThresholds } from '../config/settings.js';
 
 const router = Router();
 
@@ -41,7 +42,13 @@ router.get('/', (req, res) => {
       return res.status(400).json({ error: 'Missing or invalid parameters' });
     }
 
-    const result = calculateGsdMetrics(params);
+    if (params.roofHeight >= params.flightAltitude) {
+      return res
+        .status(400)
+        .json({ error: 'Roof height must be less than flight altitude' });
+    }
+
+    const result = calculateGsdMetrics({ ...params, thresholds: overlapThresholds });
     res.json({ ...result, units: params.units });
   } catch (err) {
     res.status(400).json({ error: err.message });
