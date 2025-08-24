@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { fetchGSD } from '../utils/api';
 import Results from '../components/Results';
 import { exportGsdPdf } from '../utils/pdf';
+import FAQ from '../components/FAQ';
 
 const DRONE_MODELS = {
   'DJI Phantom 4 Pro': {
@@ -114,11 +115,12 @@ export default function Calculator() {
         </div>
         <button className="px-4 py-2 bg-primary text-white rounded">Calculate</button>
       </form>
-        {loading && <p className="mt-4">Loading...</p>}
-        {error && <p className="mt-4 text-red-500">{error}</p>}
-        {result && !loading && !error && (
-          <Results result={result} onExportPdf={handleExportPdf} />
-        )}
+      {loading && <p className="mt-4">Loading...</p>}
+      {error && <p className="mt-4 text-red-500">{error}</p>}
+      {result && !loading && !error && (
+        <Results result={result} onExportPdf={handleExportPdf} />
+      )}
+      <FAQ />
     </div>
   );
 }
