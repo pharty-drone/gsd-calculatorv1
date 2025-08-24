@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { fetchGSD } from '../utils/api';
+import Results from '../components/Results';
 
 const DRONE_MODELS = {
   'DJI Phantom 4 Pro': {
@@ -22,17 +23,28 @@ export default function Calculator() {
   const [roofHeight, setRoofHeight] = useState(0);
   const [units, setUnits] = useState('metric');
   const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const params = {
-      ...DRONE_MODELS[model],
-      flightAltitude: parseFloat(altitude),
-      roofHeight: parseFloat(roofHeight),
-      units,
-    };
-    const data = await fetchGSD(params);
-    setResult(data);
+    setLoading(true);
+    setError(null);
+    try {
+      const params = {
+        ...DRONE_MODELS[model],
+        flightAltitude: parseFloat(altitude),
+        roofHeight: parseFloat(roofHeight),
+        units,
+      };
+      const data = await fetchGSD(params);
+      setResult(data);
+    } catch (err) {
+      setError(err.message || 'Failed to fetch results');
+      setResult(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const unitLabel = units === 'imperial' ? 'ft' : 'm';
@@ -83,44 +95,11 @@ export default function Calculator() {
         </div>
         <button className="px-4 py-2 bg-primary text-white rounded">Calculate</button>
       </form>
-      {result && (
-        <div className="mt-4 space-y-2">
-          <p>
-            Ground GSD: {result.groundGSD} {result.gsdUnit}
-          </p>
-          <p>
-            Roof GSD: {result.roofGSD} {result.gsdUnit}
-          </p>
-          <p>
-            Effective Front Overlap:{' '}
-            {(result.effectiveFrontOverlap * 100).toFixed(1)}%
-          </p>
-          <p>
-            Effective Side Overlap:{' '}
-            {(result.effectiveSideOverlap * 100).toFixed(1)}%
-          </p>
-          {result.frontOverlapLossPercent > 0 && (
-            <p>Front Overlap Loss: {result.frontOverlapLossPercent.toFixed(1)}%</p>
-          )}
-          {result.sideOverlapLossPercent > 0 && (
-            <p>Side Overlap Loss: {result.sideOverlapLossPercent.toFixed(1)}%</p>
-          )}
-          {result.recommendedAltitude && (
-            <p>
-              Recommended Altitude: {result.recommendedAltitude.toFixed(2)} {unitLabel}
-            </p>
-          )}
-          <p>
-            Recommended Front Overlap:{' '}
-            {(result.recommendedFrontOverlap * 100).toFixed(1)}%
-          </p>
-          <p>
-            Recommended Side Overlap:{' '}
-            {(result.recommendedSideOverlap * 100).toFixed(1)}%
-          </p>
-          {result.warning && <p className="text-red-600">{result.warning}</p>}
-        </div>
-      )}
+        {loading && <p className="mt-4">Loading...</p>}
+        {error && <p className="mt-4 text-red-500">{error}</p>}
+        {result && !loading && !error && (
+          <Results result={result} onExport={() => {}} />
+        )}
     </div>
   );
 }
