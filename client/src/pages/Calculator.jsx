@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { fetchGSD } from '../utils/api';
 import Results from '../components/Results';
+import { exportGsdPdf } from '../utils/pdf';
 
 const DRONE_MODELS = {
   'DJI Phantom 4 Pro': {
@@ -48,6 +49,24 @@ export default function Calculator() {
   };
 
   const unitLabel = units === 'imperial' ? 'ft' : 'm';
+
+  const handleExportPdf = async () => {
+    if (!result) {
+      alert('Please run a calculation first.');
+      return;
+    }
+    alert('Preparing PDF...');
+    const inputs = {
+      model,
+      altitude: parseFloat(altitude),
+      roofHeight: parseFloat(roofHeight),
+      units,
+      ...DRONE_MODELS[model],
+      desiredOverlap: result?.overlap?.desired,
+    };
+    const filename = await exportGsdPdf({ inputs, results: result });
+    alert(`Downloaded ${filename}`);
+  };
 
   return (
     <div className="p-4">
@@ -98,7 +117,7 @@ export default function Calculator() {
         {loading && <p className="mt-4">Loading...</p>}
         {error && <p className="mt-4 text-red-500">{error}</p>}
         {result && !loading && !error && (
-          <Results result={result} onExport={() => {}} />
+          <Results result={result} onExportPdf={handleExportPdf} />
         )}
     </div>
   );

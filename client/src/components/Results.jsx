@@ -100,7 +100,7 @@ ResultCard.propTypes = {
   children: PropTypes.node.isRequired,
 };
 
-export default function Results({ result, onExport }) {
+export default function Results({ result, onExportPdf }) {
   const {
     groundGSD,
     roofGSD,
@@ -118,7 +118,7 @@ export default function Results({ result, onExport }) {
       <div className="flex justify-end mb-4">
         <button
           type="button"
-          onClick={onExport}
+          onClick={onExportPdf}
           className="px-4 py-2 bg-primary text-white rounded shadow"
         >
           Export PDF
@@ -190,10 +190,10 @@ Results.propTypes = {
       }).isRequired,
     }).isRequired,
   }).isRequired,
-  onExport: PropTypes.func,
+  onExportPdf: PropTypes.func,
 };
 
 Results.defaultProps = {
-  onExport: () => {},
+  onExportPdf: () => {},
 };
 
