@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { fetchGSD } from '../utils/api';
 import Results from '../components/Results';
 import { exportGsdPdf } from '../utils/pdf';
+import TokenGate from '../components/TokenGate';
+import { setToken } from '../utils/token';
 
 const DRONE_MODELS = {
   'DJI Phantom 4 Pro': {
@@ -26,23 +28,30 @@ export default function Calculator() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showTokenGate, setShowTokenGate] = useState(false);
+  const [pendingParams, setPendingParams] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    const params = {
+      ...DRONE_MODELS[model],
+      flightAltitude: parseFloat(altitude),
+      roofHeight: parseFloat(roofHeight),
+      units,
+    };
     try {
-      const params = {
-        ...DRONE_MODELS[model],
-        flightAltitude: parseFloat(altitude),
-        roofHeight: parseFloat(roofHeight),
-        units,
-      };
       const data = await fetchGSD(params);
       setResult(data);
     } catch (err) {
-      setError(err.message || 'Failed to fetch results');
-      setResult(null);
+      if (err.message && err.message.startsWith('Unauthorized')) {
+        setPendingParams(params);
+        setShowTokenGate(true);
+      } else {
+        setError(err.message || 'Failed to fetch results');
+        setResult(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -66,6 +75,24 @@ export default function Calculator() {
     };
     const filename = await exportGsdPdf({ inputs, results: result });
     alert(`Downloaded ${filename}`);
+  };
+
+  const handleTokenSubmit = async (token) => {
+    setToken(token);
+    setShowTokenGate(false);
+    if (pendingParams) {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await fetchGSD(pendingParams);
+        setResult(data);
+        setPendingParams(null);
+      } catch (err) {
+        setError(err.message || 'Failed to fetch results');
+      } finally {
+        setLoading(false);
+      }
+    }
   };
 
   return (
@@ -119,6 +146,11 @@ export default function Calculator() {
         {result && !loading && !error && (
           <Results result={result} onExportPdf={handleExportPdf} />
         )}
+      <TokenGate
+        visible={showTokenGate}
+        onSubmit={handleTokenSubmit}
+        onClose={() => setShowTokenGate(false)}
+      />
     </div>
   );
 }
