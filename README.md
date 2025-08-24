@@ -1,57 +1,47 @@
 # GSD Calculator v1
 
-A secure web-based Ground Sample Distance (GSD) Calculator for drone mapping.
+A secure web-based Ground Sample Distance (GSD) calculator for drone mapping.
 
-## Development
+## Environment variables
 
-### Backend
+Copy the provided examples and adjust for your deployment:
 
-```
-cd server
-npm install
-npm start
-```
-
-### Frontend
-
-```
-cd client
-npm install
-npm start
+```bash
+cp server/.env.example server/.env
+cp client/.env.production.example client/.env.production
 ```
 
-The frontend will be served at `http://localhost:5173` and proxy API requests to the backend at `http://localhost:5000` by default.
+## Local Dev
 
-## API Token & Security
+- `npm run dev` – start Express and Vite together.
+- `npm run build` followed by `npm run serve:client` – build a production bundle and preview it locally.
 
-The production server requires a token for all `/api/*` requests. In development the token is optional and the server will log a warning when it is missing.
+## Deploy
 
-### Environment variables
+### A) GitHub Pages (static UI)
+1. Ensure `vite.config.js` uses `base: '/gsd-calculatorv1/'`.
+2. Deploy the frontend with the included `pages.yml` workflow or run `npm run build:pages` and publish `client/dist`.
+3. Host the backend separately and set `VITE_API_URL` in `client/.env.production` to its URL.
+4. Configure the backend with `API_TOKEN` and `PROD_ORIGIN`.
 
-Create `server/.env`:
+### B) Full‑stack host (Render/Railway/Fly/Heroku)
+1. Deploy `/server` to your host (set `API_TOKEN`, `PROD_ORIGIN`, and `SERVER_PORT`).
+2. Serve the static files from `client/dist` either from the same host or from GitHub Pages.
 
+### Embed
+
+```html
+<iframe src="https://your-domain/gsd-calculatorv1/" width="100%" height="900" style="border:0;"></iframe>
 ```
-API_TOKEN=your-secret-token
-PROD_ORIGIN=http://localhost:5173
-```
 
-Create `client/.env.production` used during `npm run build`:
+## Security
 
-```
-VITE_API_URL=https://your-backend.example.com
-```
+- All `/api/*` requests require an `x-api-token` header in production.
+- Rotate the token by updating `API_TOKEN` on the server; clients will be prompted again.
+- CORS is locked down to `PROD_ORIGIN` in production.
+- Client-side obfuscation deters casual inspection but does not provide strong security.
 
-### How to issue tokens
+## Notes
 
-The backend checks a single static token defined in `API_TOKEN`. Distribute this token out-of-band to trusted users. The client stores it in `localStorage` under `api_token` and sends it as an `x-api-token` header. The UI prompts for the token if a request is unauthorized.
-
-### How to run in dev vs prod
-
-- **Development**: run `npm start` in `server` and `client`. No token or obfuscation is required.
-- **Production**: set `NODE_ENV=production` on the server and ensure `API_TOKEN` and `PROD_ORIGIN` are configured. Build the client with `npm run build` and serve `client/dist`. Requests without a valid token receive `401` and the frontend will ask for a token.
-
-### Security caveats
-
-- The token is a simple bearer token stored in `localStorage`.
-- Client-side obfuscation and key blocking are deterrents only and do not provide strong security.
-- Always keep sensitive calculations on the server.
+- `npm run lint` runs ESLint on both client and server.
+- `npm run copy:docs` can copy the built client into `/docs` for an alternate Pages setup.
