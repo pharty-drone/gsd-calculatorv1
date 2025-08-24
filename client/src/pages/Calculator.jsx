@@ -3,6 +3,8 @@ import { fetchGSD } from '../utils/api';
 import Results from '../components/Results';
 import { exportGsdPdf } from '../utils/pdf';
 import FAQ from '../components/FAQ';
+import TokenGate from '../components/TokenGate';
+import { setToken } from '../utils/token';
 
 const DRONE_MODELS = {
   'DJI Phantom 4 Pro': {
@@ -28,22 +30,52 @@ export default function Calculator() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // token-gate state
+  const [showTokenGate, setShowTokenGate] = useState(false);
+  const [pendingParams, setPendingParams] = useState(null);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
+    const params = {
+      ...DRONE_MODELS[model],
+      flightAltitude: parseFloat(altitude),
+      roofHeight: parseFloat(roofHeight),
+      units,
+    };
+
     try {
-      const params = {
-        ...DRONE_MODELS[model],
-        flightAltitude: parseFloat(altitude),
-        roofHeight: parseFloat(roofHeight),
-        units,
-      };
       const data = await fetchGSD(params);
       setResult(data);
     } catch (err) {
-      setError(err.message || 'Failed to fetch results');
-      setResult(null);
+      // Show token modal only when backend returns 401 (Unauthorized)
+      if (err?.message?.toLowerCase().includes('unauthorized')) {
+        setPendingParams(params);
+        setShowTokenGate(true);
+      } else {
+        setError(err.message || 'Failed to fetch results');
+        setResult(null);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // When user enters a token, save it and retry the pending request
+  const handleTokenSubmit = async (token) => {
+    try {
+      setToken(token);
+      setShowTokenGate(false);
+      if (pendingParams) {
+        setLoading(true);
+        const data = await fetchGSD(pendingParams);
+        setResult(data);
+        setPendingParams(null);
+      }
+    } catch (err) {
+      setError(err.message || 'Failed after token entry');
     } finally {
       setLoading(false);
     }
@@ -84,6 +116,7 @@ export default function Calculator() {
             ))}
           </select>
         </div>
+
         <div>
           <label className="block mb-1">Flight Altitude ({unitLabel})</label>
           <input
@@ -93,6 +126,7 @@ export default function Calculator() {
             className="w-full p-2 border rounded dark:bg-gray-700"
           />
         </div>
+
         <div>
           <label className="block mb-1">Roof Height ({unitLabel})</label>
           <input
@@ -102,6 +136,7 @@ export default function Calculator() {
             className="w-full p-2 border rounded dark:bg-gray-700"
           />
         </div>
+
         <div>
           <label className="block mb-1">Units</label>
           <select
@@ -113,13 +148,26 @@ export default function Calculator() {
             <option value="imperial">Imperial</option>
           </select>
         </div>
+
         <button className="px-4 py-2 bg-primary text-white rounded">Calculate</button>
       </form>
+
       {loading && <p className="mt-4">Loading...</p>}
       {error && <p className="mt-4 text-red-500">{error}</p>}
       {result && !loading && !error && (
         <Results result={result} onExportPdf={handleExportPdf} />
       )}
+
+      {/* Token prompt (only when backend rejects with 401) */}
+      {showTokenGate && (
+        <TokenGate
+          visible={showTokenGate}
+          onSubmit={handleTokenSubmit}
+          onClose={() => setShowTokenGate(false)}
+        />
+      )}
+
+      {/* Helpful docs for users */}
       <FAQ />
     </div>
   );
